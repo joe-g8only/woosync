@@ -18,7 +18,14 @@ import {
 import { eq } from "drizzle-orm";
 
 // Use /data/woo_tool.db on Railway (persistent volume) or local file in dev
+import fs from "fs";
+import path from "path";
 const DB_PATH = process.env.DATABASE_PATH || "woo_tool.db";
+// Ensure the directory exists before opening the database
+const DB_DIR = path.dirname(DB_PATH);
+if (DB_DIR !== "." && !fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
 const sqlite = new Database(DB_PATH);
 export const db = drizzle(sqlite);
 
