@@ -337,6 +337,8 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     const aiDescriptionSourceCol: string = req.body.aiDescriptionSourceCol || "Description";
     const aiNameSourceCol: string = req.body.aiNameSourceCol || "Name";
     const aiBrandSourceCol: string = req.body.aiBrandSourceCol || "Brand";
+    // Inline key from the panel overrides the session key
+    if (req.body.aiOpenaiApiKey) sess.openaiApiKey = req.body.aiOpenaiApiKey;
 
     // Resolve field mapping for this session (fall back to defaults if not configured)
     const fmRecord = storage.getFieldMapping(id);
@@ -824,13 +826,20 @@ export async function registerRoutes(httpServer: Server, app: Express) {
   });
 
   app.post("/api/profiles", async (req, res) => {
-    const { name, storeUrl, consumerKey, consumerSecret } = req.body;
+    const { name, storeUrl, consumerKey, consumerSecret, sessionId } = req.body;
     if (!name || !storeUrl || !consumerKey || !consumerSecret)
       return res.status(400).json({ error: "name, storeUrl, consumerKey, and consumerSecret are required." });
     // Validate credentials before saving
     const test = await testConnection({ storeUrl, consumerKey, consumerSecret });
     if (!test.success) return res.status(400).json({ error: `Could not connect: ${test.error}` });
-    const profile = storage.createProfile({ name, storeUrl, consumerKey, consumerSecret, storeName: test.storeName });
+    // Pull optional credentials from the current session if available
+    const sess = sessionId ? sessionStore[parseInt(sessionId)] : undefined;
+    const profile = storage.createProfile({
+      name, storeUrl, consumerKey, consumerSecret, storeName: test.storeName,
+      wpUsername: sess?.wpUsername || undefined,
+      wpAppPassword: sess?.wpAppPassword || undefined,
+      openaiApiKey: sess?.openaiApiKey || undefined,
+    });
     return res.json({ id: profile.id, name: profile.name, storeUrl: profile.storeUrl, storeName: profile.storeName, createdAt: profile.createdAt });
   });
 
@@ -853,7 +862,15 @@ export async function registerRoutes(httpServer: Server, app: Express) {
       consumerSecret: profile.consumerSecret, storeName: test.storeName,
       createdAt: Date.now(),
     });
-    sessionStore[session.id] = { storeUrl: profile.storeUrl, consumerKey: profile.consumerKey, consumerSecret: profile.consumerSecret, storeName: test.storeName };
+    sessionStore[session.id] = {
+      storeUrl: profile.storeUrl,
+      consumerKey: profile.consumerKey,
+      consumerSecret: profile.consumerSecret,
+      storeName: test.storeName,
+      wpUsername: profile.wpUsername || undefined,
+      wpAppPassword: profile.wpAppPassword || undefined,
+      openaiApiKey: profile.openaiApiKey || undefined,
+    };
     // Update last used
     storage.updateProfile(id, { lastUsedAt: Date.now() });
     return res.json({ sessionId: session.id, storeName: test.storeName, storeUrl: profile.storeUrl });

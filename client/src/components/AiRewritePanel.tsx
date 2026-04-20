@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   Sparkles,
   Eye,
@@ -26,6 +27,7 @@ import {
   ChevronUp,
   AlertTriangle,
   CheckCircle2,
+  KeyRound,
 } from "lucide-react";
 
 interface RewrittenDescription {
@@ -39,6 +41,7 @@ interface AiRewriteConfig {
   descriptionSourceCol: string;   // which CSV col has the source description
   nameSourceCol: string;
   brandSourceCol: string;
+  openaiApiKey?: string;          // optional — overrides session key
 }
 
 interface AiRewritePanelProps {
@@ -62,7 +65,7 @@ export function AiRewritePanel({ csvColumns, sampleRow, config, onChange }: AiRe
       const res = await fetch(`${API_BASE}/api/rewrite-preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description, productName, brand }),
+        body: JSON.stringify({ description, productName, brand, openaiApiKey: config.openaiApiKey || undefined }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Request failed" }));
@@ -119,6 +122,24 @@ export function AiRewritePanel({ csvColumns, sampleRow, config, onChange }: AiRe
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* OpenAI API Key input */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">OpenAI API Key</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  type="password"
+                  placeholder="sk-... (paste your key — session only, never saved)"
+                  value={config.openaiApiKey || ""}
+                  onChange={(e) => onChange({ ...config, openaiApiKey: e.target.value })}
+                  className="pl-8 h-8 text-xs font-mono"
+                  autoComplete="off"
+                  data-testid="input-ai-rewrite-openai-key"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">Required if not set on the Connect screen. Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="underline text-primary">platform.openai.com</a></p>
+            </div>
+
             {/* Source column selectors */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">

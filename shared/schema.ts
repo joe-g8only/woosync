@@ -53,6 +53,9 @@ export const storeProfiles = sqliteTable("store_profiles", {
   consumerKey: text("consumer_key").notNull(),
   consumerSecret: text("consumer_secret").notNull(),
   storeName: text("store_name"),          // fetched from WooCommerce on save
+  wpUsername: text("wp_username"),        // optional WP Application Password username
+  wpAppPassword: text("wp_app_password"), // optional WP Application Password
+  openaiApiKey: text("openai_api_key"),   // optional OpenAI API key for AI rewrites
   lastUsedAt: integer("last_used_at"),
   createdAt: integer("created_at").notNull(),
 });

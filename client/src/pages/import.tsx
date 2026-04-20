@@ -939,6 +939,7 @@ export default function ImportPage() {
         form.append("aiDescriptionSourceCol", aiRewriteConfig.descriptionSourceCol);
         form.append("aiNameSourceCol", aiRewriteConfig.nameSourceCol);
         form.append("aiBrandSourceCol", aiRewriteConfig.brandSourceCol);
+        if (aiRewriteConfig.openaiApiKey) form.append("aiOpenaiApiKey", aiRewriteConfig.openaiApiKey);
       }
 
       // Fire the import — server responds immediately with { runId }, then processes in background

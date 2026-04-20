@@ -95,6 +95,11 @@ try {
   sqlite.exec(`ALTER TABLE import_results ADD COLUMN field_changes TEXT;`);
 } catch (_) { /* column already exists */ }
 
+// Migrate: add wp_username, wp_app_password, openai_api_key to store_profiles
+try { sqlite.exec(`ALTER TABLE store_profiles ADD COLUMN wp_username TEXT;`); } catch (_) {}
+try { sqlite.exec(`ALTER TABLE store_profiles ADD COLUMN wp_app_password TEXT;`); } catch (_) {}
+try { sqlite.exec(`ALTER TABLE store_profiles ADD COLUMN openai_api_key TEXT;`); } catch (_) {}
+
 export interface IStorage {
   // Sessions
   createSession(data: InsertSession & { createdAt: number }): ImportSession;
@@ -117,8 +122,8 @@ export interface IStorage {
   // Store profiles
   listProfiles(): StoreProfile[];
   getProfile(id: number): StoreProfile | undefined;
-  createProfile(data: { name: string; storeUrl: string; consumerKey: string; consumerSecret: string; storeName?: string }): StoreProfile;
-  updateProfile(id: number, data: Partial<{ name: string; storeUrl: string; consumerKey: string; consumerSecret: string; storeName: string; lastUsedAt: number }>): StoreProfile | undefined;
+  createProfile(data: { name: string; storeUrl: string; consumerKey: string; consumerSecret: string; storeName?: string; wpUsername?: string; wpAppPassword?: string; openaiApiKey?: string }): StoreProfile;
+  updateProfile(id: number, data: Partial<{ name: string; storeUrl: string; consumerKey: string; consumerSecret: string; storeName: string; lastUsedAt: number; wpUsername: string; wpAppPassword: string; openaiApiKey: string }>): StoreProfile | undefined;
   deleteProfile(id: number): void;
 }
 
@@ -175,7 +180,18 @@ export const storage: IStorage = {
   },
   createProfile(data) {
     return db.insert(storeProfiles)
-      .values({ ...data, storeName: data.storeName ?? null, createdAt: Date.now(), lastUsedAt: Date.now() })
+      .values({
+        name: data.name,
+        storeUrl: data.storeUrl,
+        consumerKey: data.consumerKey,
+        consumerSecret: data.consumerSecret,
+        storeName: data.storeName ?? null,
+        wpUsername: data.wpUsername ?? null,
+        wpAppPassword: data.wpAppPassword ?? null,
+        openaiApiKey: data.openaiApiKey ?? null,
+        createdAt: Date.now(),
+        lastUsedAt: Date.now(),
+      })
       .returning().get() as StoreProfile;
   },
   updateProfile(id, data) {
