@@ -175,7 +175,7 @@ export default function ConnectPage() {
         storeUrl,
         consumerKey,
         consumerSecret,
-        sessionId: connected?.sessionId,
+        sessionId: pendingConnect?.sessionId ?? connected?.sessionId,
       });
       return res.json();
     },

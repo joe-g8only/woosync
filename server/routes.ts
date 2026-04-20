@@ -377,6 +377,7 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     setImmediate(async () => {
     const client = createWooClient(sess);
     let updated = 0, created = 0, skipped = 0, errors = 0;
+    const allTempFiles: string[] = []; // temp image files to clean up after run
 
     // Per-run category name → ID cache so we don’t re-fetch the same category for every row
     const categoryCache = new Map<string, number>();
@@ -470,14 +471,18 @@ export async function registerRoutes(httpServer: Server, app: Express) {
         return wooImages.length > 0 ? wooImages : null;
       }
 
-      // No WP credentials — pass original source URLs directly to WooCommerce for sideloading.
-      // We cannot serve locally-processed images because our Express server is not reachable
-      // from the WooCommerce server. WooCommerce can sideload from the original CDN/host URLs fine.
-      const raw = String(rawImages);
-      const urls = (raw.includes("|") ? raw.split("|") : raw.split(","))
-        .map((u: string) => u.trim()).filter(Boolean);
-      if (urls.length === 0) return null;
-      return urls.map((src: string) => ({ src }));
+      // No WP credentials — process locally with Sharp, serve from our own server,
+      // and pass the served URL to WooCommerce for sideloading.
+      // Build the public base URL from the incoming request (works on Railway, local, etc.)
+      const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+      const host = req.headers["x-forwarded-host"] || req.get("host") || "localhost:5000";
+      const serveBase = `${proto}://${host}/tmp-images`;
+      const { wooImages, warnings: imgWarnings, errors: imgErrors, tempFiles } =
+        await processImagesForProduct(String(rawImages), serveBase);
+      rowWarnings.push(...imgWarnings);
+      if (imgErrors.length > 0) imgErrors.forEach((e) => rowWarnings.push(e));
+      if (tempFiles.length > 0) allTempFiles.push(...tempFiles);
+      return wooImages.length > 0 ? wooImages : null;
     }
 
     for (let i = 0; i < records.length; i++) {
@@ -780,6 +785,9 @@ export async function registerRoutes(httpServer: Server, app: Express) {
       updated, created, skipped, errors,
       completedAt: Date.now(),
     });
+
+    // Clean up any temp image files created during this run
+    if (allTempFiles.length > 0) cleanupTempImages(allTempFiles);
 
     }); // end setImmediate background task
   }); // end POST /api/import/:sessionId
