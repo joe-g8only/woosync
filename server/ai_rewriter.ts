@@ -59,7 +59,7 @@ Rewrite this into the following three blocks. Return ONLY valid JSON — no mark
 }`;
 
   const response = await client.responses.create({
-    model: "gpt5_mini",
+    model: "gpt-4o-mini",
     input: prompt,
   });
 
