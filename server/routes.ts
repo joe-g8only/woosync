@@ -22,6 +22,7 @@ import type { DryRunRow, DryRunResult, SkuConflict, SkuCandidate, PreCheckResult
 import { storage } from "./storage";
 import { processImagesForProduct, processImagesWithWpUpload, cleanupTempImages, TMP_IMAGE_DIR } from "./image_processor";
 import { rewriteDescription } from "./ai_rewriter";
+import { convertShopifyToWooCommerce } from "./shopify_converter";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
@@ -1077,5 +1078,24 @@ export async function registerRoutes(httpServer: Server, app: Express) {
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="import-results-${runId}.csv"`);
     return res.send(csv);
+  });
+
+  // ─── SHOPIFY CONVERTER ──────────────────────────────────────────────────────
+  // POST /api/shopify-convert  — accepts a Shopify CSV, returns a WooCommerce CSV
+  app.post("/api/shopify-convert", upload.single("file"), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    try {
+      const shopifyCsv = req.file.buffer.toString("utf-8").replace(/^\uFEFF/, "");
+      const result = convertShopifyToWooCommerce(shopifyCsv);
+      res.json({
+        csv: result.csv,
+        productCount: result.productCount,
+        variantCount: result.variantCount,
+        warnings: result.warnings,
+      });
+    } catch (err: any) {
+      console.error("Shopify convert error:", err);
+      res.status(500).json({ error: err.message || "Conversion failed" });
+    }
   });
 }

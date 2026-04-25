@@ -39,6 +39,7 @@ import {
   ImageIcon,
   Info,
   Sparkles,
+  ShoppingBag,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -572,6 +573,17 @@ export default function ConnectPage() {
             ))}
           </div>
         )}
+      {/* Shopify Converter shortcut */}
+      <div className="pt-2">
+        <button
+          onClick={() => navigate("/shopify-convert")}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors text-sm font-medium"
+        >
+          <ShoppingBag className="w-4 h-4" />
+          Convert a Shopify Export → WooCommerce CSV
+        </button>
+      </div>
+
       </div>
 
       {/* Save profile dialog */}

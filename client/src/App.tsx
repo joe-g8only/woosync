@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import ConnectPage from "@/pages/connect";
 import ImportPage from "@/pages/import";
 import ResultsPage from "@/pages/results";
+import ShopifyConvertPage from "@/pages/shopify-convert";
 import NotFound from "@/pages/not-found";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Component, type ReactNode } from "react";
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/" component={ConnectPage} />
               <Route path="/import/:sessionId" component={ImportPage} />
               <Route path="/results/:runId" component={ResultsPage} />
+              <Route path="/shopify-convert" component={ShopifyConvertPage} />
               <Route component={NotFound} />
             </Switch>
           </Router>
